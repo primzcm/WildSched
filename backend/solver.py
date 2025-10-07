@@ -23,25 +23,34 @@ def generate_schedules(courses: Sequence[Course], prefs: Preferences, top_k: int
     section_vars: Dict[str, cp_model.IntVar] = {}
     section_stats: Dict[str, SectionStats] = {}
     section_records: List[Tuple[str, Section]] = []
+    missing_courses: List[str] = []
 
     for course in courses:
-        vars_for_course: List[cp_model.IntVar] = []
-        for section in course.sections:
-            var = model.NewBoolVar(section.id)
-            section_vars[section.id] = var
-            vars_for_course.append(var)
+        eligible_sections: List[Tuple[Section, cp_model.IntVar]] = []
 
+        for section in course.sections:
             stats = build_section_stats(section, prefs)
-            section_stats[section.id] = stats
 
             if violates_window(stats, prefs):
-                model.Add(var == 0)
+                continue
 
+            var = model.NewBoolVar(section.id)
+            section_vars[section.id] = var
+            section_stats[section.id] = stats
+            eligible_sections.append((section, var))
+
+        if not eligible_sections:
+            missing_courses.append(course.code)
+            continue
+
+        model.Add(sum(var for _, var in eligible_sections) == 1)
+
+        for section, _ in eligible_sections:
             section_records.append((course.code, section))
 
-        if not vars_for_course:
-            raise ValueError(f"Course {course.code} has no sections to choose from")
-        model.Add(sum(vars_for_course) == 1)
+    if not section_vars:
+        rationale = build_rationale(prefs, 0, len(missing_courses))
+        return SolveResponse(results=[], rationale=rationale, missingCourses=missing_courses)
 
     add_overlap_constraints(model, section_records, section_vars)
 
@@ -73,8 +82,8 @@ def generate_schedules(courses: Sequence[Course], prefs: Preferences, top_k: int
 
         model.Add(sum(section_vars[sec_id] for sec_id in chosen) <= len(chosen) - 1)
 
-    rationale = build_rationale(prefs, len(results))
-    return SolveResponse(results=results, rationale=rationale)
+    rationale = build_rationale(prefs, len(results), len(missing_courses))
+    return SolveResponse(results=results, rationale=rationale, missingCourses=missing_courses)
 
 
 def build_section_stats(section: Section, prefs: Preferences) -> SectionStats:
@@ -135,9 +144,13 @@ def sections_overlap(section_a: Section, section_b: Section) -> bool:
     return False
 
 
-def build_rationale(prefs: Preferences, solution_count: int) -> str:
+def build_rationale(prefs: Preferences, solution_count: int, missing_count: int = 0) -> str:
     mode_text = "Morning preference" if prefs.mode == "morning" else "Afternoon preference"
-    return (
+    message = (
         f"{mode_text}; gap weight {prefs.minimizeGaps:.2f}. "
         f"Generated {solution_count} schedule{'s' if solution_count != 1 else ''}."
     )
+    if missing_count:
+        message += f" {missing_count} course{'s' if missing_count != 1 else ''} could not be scheduled."
+    return message
+

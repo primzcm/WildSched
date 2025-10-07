@@ -49,11 +49,6 @@ class Course(BaseModel):
     components: Optional[List[Kind]] = None
     sections: List[Section]
 
-    @model_validator(mode="after")
-    def ensure_sections(self) -> "Course":
-        if not self.sections:
-            raise ValueError("Course must include at least one section")
-        return self
 
 
 class Preferences(BaseModel):
@@ -89,3 +84,4 @@ class SolveResultItem(BaseModel):
 class SolveResponse(BaseModel):
     results: List[SolveResultItem] = Field(default_factory=list)
     rationale: Optional[str] = None
+    missingCourses: List[str] = Field(default_factory=list)

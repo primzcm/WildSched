@@ -93,6 +93,8 @@ export default function HomePage() {
   const [solverRationale, setSolverRationale] = useState<string | undefined>(undefined);
   const [solverReady, setSolverReady] = useState<boolean | null>(null);
   const [solverStatusMessage, setSolverStatusMessage] = useState<string | null>(null);
+  const [missingCourses, setMissingCourses] = useState<string[]>([]);
+  const [noScheduleHint, setNoScheduleHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -110,6 +112,8 @@ export default function HomePage() {
       setExcludedSections(parsed.excludedSections ?? []);
       setPrefs(parsed.prefs ?? DEFAULT_PREFS);
       setTopK(parsed.topK ?? 3);
+      setMissingCourses(parsed.missingCourses ?? []);
+      setNoScheduleHint(parsed.noScheduleHint ?? null);
     } catch (error) {
       console.warn("Failed to restore state", error);
     }
@@ -126,9 +130,11 @@ export default function HomePage() {
       excludedSections,
       prefs,
       topK,
+      missingCourses,
+      noScheduleHint,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [rawInput, courses, warnings, excludedSections, prefs, topK]);
+  }, [rawInput, courses, warnings, excludedSections, prefs, topK, missingCourses, noScheduleHint]);
 
   useEffect(() => {
     let active = true;
@@ -164,14 +170,17 @@ export default function HomePage() {
   }, []);
 
   const excludedSet = useMemo(() => new Set(excludedSections), [excludedSections]);
-  const filteredCourses = useMemo(() =>
-    courses
-      .map((course) => ({
+
+  const requestCourses = useMemo(
+    () =>
+      courses.map((course) => ({
         ...course,
-                sections: course.sections.filter((section) => !excludedSet.has(section.id) && isSectionAvailable(section)),
-      }))
-      .filter((course) => course.sections.length > 0),
-  [courses, excludedSet]);
+        sections: course.sections.filter(
+          (section) => !excludedSet.has(section.id) && isSectionAvailable(section),
+        ),
+      })),
+    [courses, excludedSet],
+  );
 
   const solveDisabledReason = (() => {
     if (solverReady === null) {
@@ -180,8 +189,8 @@ export default function HomePage() {
     if (solverReady === false) {
       return solverStatusMessage ?? "Solver URL not configured.";
     }
-    if (!filteredCourses.length) {
-      return "Add at least one course with an available section before solving.";
+    if (!courses.length) {
+      return "Add at least one course before solving.";
     }
     return null;
   })();
@@ -205,6 +214,8 @@ export default function HomePage() {
     setResults([]);
     setSolveError(null);
     setSolverRationale(undefined);
+    setMissingCourses([]);
+    setNoScheduleHint(null);
   };
 
   const handleToggleSection = (sectionId: string) => {
@@ -233,21 +244,18 @@ export default function HomePage() {
       return;
     }
 
-    if (!filteredCourses.length) {
-      setSolveError("Add at least one course with an available section before solving.");
-      return;
-    }
-
     setSolving(true);
     setSolveError(null);
     setResults([]);
     setSolverRationale(undefined);
+    setMissingCourses([]);
+    setNoScheduleHint(null);
 
     try {
       const response = await fetch("/api/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courses: filteredCourses, prefs, topK }),
+        body: JSON.stringify({ courses: requestCourses, prefs, topK }),
       });
 
       if (!response.ok) {
@@ -256,8 +264,30 @@ export default function HomePage() {
       }
 
       const data = (await response.json()) as SolveResponse;
-      setResults(data.results ?? []);
+      const generated = data.results ?? [];
+      setResults(generated);
       setSolverRationale(data.rationale);
+      const missing = data.missingCourses ?? [];
+      setMissingCourses(missing);
+
+      if (!generated.length) {
+        const remainingCourseCodes = requestCourses
+          .filter((course) => course.sections.length > 0)
+          .map((course) => course.code);
+
+        if (!remainingCourseCodes.length) {
+          setNoScheduleHint('No sections meet the current time window or availability filters. Relax earliest/latest times or add additional sections.');
+        } else {
+          const unscheduled = remainingCourseCodes.filter((code) => !missing.includes(code));
+          if (unscheduled.length) {
+            setNoScheduleHint(`No conflict-free combination fits your filters for ${unscheduled.join(', ')}. Try relaxing the time window or excluding a section.`);
+          } else {
+            setNoScheduleHint('No sections meet the current time window or availability filters. Relax earliest/latest times or add additional sections.');
+          }
+        }
+      } else {
+        setNoScheduleHint(null);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to connect to solver";
       setSolveError(message);
@@ -326,6 +356,18 @@ export default function HomePage() {
           </div>
         ) : null}
 
+        {missingCourses.length ? (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+            Unable to schedule: {missingCourses.join(", ")} (no sections satisfy the current time window or availability constraints).
+          </div>
+        ) : null}
+
+        {noScheduleHint ? (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+            {noScheduleHint}
+          </div>
+        ) : null}
+
         {!solving && results.length === 0 && courses.length ? (
           <p className="text-sm text-slate-400">No schedules yet. Add more sections and click Generate schedules when ready.</p>
         ) : null}
@@ -350,4 +392,8 @@ export default function HomePage() {
       </div>
     </main>
   );
+
+
+
 }
+
