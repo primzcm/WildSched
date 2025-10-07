@@ -1,0 +1,71 @@
+"use client";
+
+import { useState } from "react";
+import { parseCatalogDetailed } from "@/lib/parse";
+import type { Course } from "@/lib/types";
+
+interface FileImportProps {
+  rawInput: string;
+  onRawInputChange(value: string): void;
+  onParsed(courses: Course[], warnings: string[]): void;
+}
+
+export function FileImport({ rawInput, onRawInputChange, onParsed }: FileImportProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [localWarnings, setLocalWarnings] = useState<string[]>([]);
+
+  const handleParse = () => {
+    try {
+      const { courses, warnings } = parseCatalogDetailed(rawInput);
+      setError(null);
+      setLocalWarnings(warnings);
+      onParsed(courses, warnings);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to parse catalog.";
+      setError(message);
+      setLocalWarnings([]);
+      onParsed([], []);
+    }
+  };
+
+  return (
+    <section className="space-y-3">
+      <header>
+        <h2 className="text-lg font-semibold">Paste Catalog</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Paste the raw schedule blocks exactly as provided by the registrar, then parse to normalize.
+        </p>
+      </header>
+      <textarea
+        className="w-full min-h-[200px] rounded-md border border-gray-300 bg-white px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-900"
+        value={rawInput}
+        onChange={(event) => onRawInputChange(event.target.value)}
+        placeholder="Paste catalog text here..."
+      />
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleParse}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          Parse Catalog
+        </button>
+        <span className="text-xs text-gray-500">
+          Parsed sections appear below. Preferences apply when generating schedules.
+        </span>
+      </div>
+      {error ? (
+        <p className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-950/40">
+          {error}
+        </p>
+      ) : null}
+      {!error && localWarnings.length ? (
+        <ul className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950/40">
+          {localWarnings.map((warning) => (
+            <li key={warning}>Warning: {warning}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
