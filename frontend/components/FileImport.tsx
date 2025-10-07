@@ -35,7 +35,7 @@ export function FileImport({ rawInput, onRawInputChange, onAddCourses }: FileImp
       <header>
         <h2 className="text-lg font-semibold">Add Catalog Blocks</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Paste registrar blocks, then click &quot;Add to list&quot; to append their sections below. You can keep adding more blocks before solving.
+          Paste registrar blocks, then click Add to list to append their sections below. You can keep adding more blocks before solving.
         </p>
       </header>
       <textarea

@@ -12,3 +12,4 @@
 - Redesigned schedule calendar with full-day gridlines and disabled solve button until solver is configured.
 - Added AGENTS.md to .gitignore so it stays local-only.
 - Solver now skips unschedulable courses gracefully and reports them back to the UI.
+- Added vertical scroll constraint to the course list table for easier navigation.

@@ -27,7 +27,8 @@ export function CourseEditor({ courses, excludedSections, onToggleSection }: Cou
         </div>
       </header>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-800 text-left text-sm text-slate-200">
+        <div className="max-h-[420px] overflow-y-auto rounded-xl border border-slate-800/60">
+          <table className="min-w-full divide-y divide-slate-800 text-left text-sm text-slate-200">
           <thead className="bg-slate-900/60 uppercase text-xs font-semibold tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Subject</th>
@@ -44,8 +45,7 @@ export function CourseEditor({ courses, excludedSections, onToggleSection }: Cou
             {rows.length ? (
               rows.map(({ course, section }) => {
                 const isExcluded = excluded.has(section.id);
-                const closed = isSectionClosed(section);
-                const rowClass = [isExcluded ? "bg-red-900/30" : "", closed ? "opacity-70" : ""].filter(Boolean).join(" ");
+                const rowClass = isExcluded ? "bg-red-900/30" : "";
 
                 return (
                   <tr key={section.id} className={rowClass}>
@@ -70,16 +70,13 @@ export function CourseEditor({ courses, excludedSections, onToggleSection }: Cou
                       <button
                         type="button"
                         onClick={() => onToggleSection(section.id)}
-                        disabled={closed}
                         className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
-                          closed
-                            ? "cursor-not-allowed border-slate-600 text-slate-500"
-                            : isExcluded
-                              ? "border-red-500 text-red-400 hover:bg-red-900/30"
-                              : "border-emerald-500 text-emerald-400 hover:bg-emerald-900/30"
+                          isExcluded
+                            ? "border-red-500 text-red-400 hover:bg-red-900/30"
+                            : "border-emerald-500 text-emerald-400 hover:bg-emerald-900/30"
                         }`}
                       >
-                        {closed ? "Closed" : isExcluded ? "Excluded" : "Included"}
+                        {isExcluded ? "Excluded" : "Included"}
                       </button>
                     </td>
                   </tr>
@@ -93,7 +90,8 @@ export function CourseEditor({ courses, excludedSections, onToggleSection }: Cou
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </section>
   );
@@ -145,3 +143,5 @@ function renderStatus(section: Section): string {
   }
   return "Unknown";
 }
+
+

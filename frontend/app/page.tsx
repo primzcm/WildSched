@@ -25,14 +25,14 @@ function cloneCourse(course: Course): Course {
   };
 }
 
-function isSectionAvailable(section: Section): boolean {
+function isSectionClosed(section: Section): boolean {
   if (section.open === false) {
-    return false;
+    return true;
   }
-  if (section.capacity !== undefined && section.enrolled !== undefined && section.enrolled >= section.capacity) {
-    return false;
+  if (section.capacity !== undefined && section.enrolled !== undefined) {
+    return section.enrolled >= section.capacity;
   }
-  return true;
+  return false;
 }
 
 function mergeCourses(existing: Course[], additions: Course[]): Course[] {
@@ -175,9 +175,7 @@ export default function HomePage() {
     () =>
       courses.map((course) => ({
         ...course,
-        sections: course.sections.filter(
-          (section) => !excludedSet.has(section.id) && isSectionAvailable(section),
-        ),
+        sections: course.sections.filter((section) => !excludedSet.has(section.id)),
       })),
     [courses, excludedSet],
   );
@@ -200,7 +198,15 @@ export default function HomePage() {
       const merged = mergeCourses(courses, newCourses);
       setCourses(merged);
       const availableIds = new Set(merged.flatMap((course) => course.sections.map((section) => section.id)));
-      setExcludedSections((current) => current.filter((id) => availableIds.has(id)));
+      const closedIds = new Set(
+        merged.flatMap((course) => course.sections.filter((section) => isSectionClosed(section)).map((section) => section.id)),
+      );
+
+      setExcludedSections((current) => {
+        const next = new Set(current.filter((id) => availableIds.has(id)));
+        closedIds.forEach((id) => next.add(id));
+        return Array.from(next);
+      });
     }
 
     if (parseWarnings.length) {
@@ -396,4 +402,5 @@ export default function HomePage() {
 
 
 }
+
 

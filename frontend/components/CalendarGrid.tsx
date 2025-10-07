@@ -6,7 +6,7 @@ interface CalendarGridProps {
 }
 
 const MINUTES_START = 7 * 60;
-const MINUTES_END = 21 * 60;
+const MINUTES_END = 22 * 60;
 const TOTAL_MINUTES = MINUTES_END - MINUTES_START;
 const DAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
 
@@ -35,7 +35,7 @@ export function CalendarGrid({ sections, courses }: CalendarGridProps) {
   const halfHourMarks = generateMarks(30, true);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto overflow-y-hidden">
       <div className="grid min-w-[960px] grid-cols-[80px_repeat(7,minmax(0,1fr))] gap-4">
         <div />
         {DAYS.map((day) => (
@@ -124,7 +124,7 @@ function TimeColumn({ hourMarks }: { hourMarks: number[] }) {
 
 function generateMarks(step: number, skipHour = false): number[] {
   const marks: number[] = [];
-  for (let minutes = MINUTES_START; minutes <= MINUTES_END; minutes += step) {
+  for (let minutes = MINUTES_START; minutes < MINUTES_END; minutes += step) {
     if (skipHour && minutes % 60 === 0) {
       continue;
     }
@@ -158,3 +158,9 @@ function findCourse(courses: Course[], section: Section): Course {
   }
   return fallback;
 }
+
+
+
+
+
+
