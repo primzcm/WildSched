@@ -27,7 +27,7 @@ export function ScheduleCard({ index, score, sections, courses, onExport }: Sche
       </header>
       <div>
         <h4 className="text-sm font-semibold">Included sections</h4>
-        <ul className="mt-2 space-y-1 text-sm text-gray-700 dark:text-gray-200">
+        <ul className="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-200">
           {sections.map((section) => {
             const course = findCourse(courses, section.id);
             return (

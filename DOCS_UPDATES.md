@@ -13,3 +13,8 @@
 - Added AGENTS.md to .gitignore so it stays local-only.
 - Solver now skips unschedulable courses gracefully and reports them back to the UI.
 - Added vertical scroll constraint to the course list table for easier navigation.
+- Added per-section remove controls and a remove-all option to the course list.
+
+## 2025-10-11
+- Removed per-section delete controls from generated schedules and added subject-level grouping with bulk removal in the course list.
+- Highlighted course subject header rows for better visual separation in the course list.

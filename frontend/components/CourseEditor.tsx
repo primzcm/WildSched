@@ -1,85 +1,136 @@
+import { Fragment } from "react";
 import type { Course, Section } from "@/lib/types";
 
 interface CourseEditorProps {
   courses: Course[];
   excludedSections: string[];
   onToggleSection(sectionId: string): void;
+  onRemoveSection(sectionId: string): void;
+  onRemoveSubject(courseCode: string): void;
+  onRemoveAll(): void;
 }
 
-export function CourseEditor({ courses, excludedSections, onToggleSection }: CourseEditorProps) {
+export function CourseEditor({
+  courses,
+  excludedSections,
+  onToggleSection,
+  onRemoveSection,
+  onRemoveSubject,
+  onRemoveAll,
+}: CourseEditorProps) {
   const excluded = new Set(excludedSections);
-  const rows = courses.flatMap((course) =>
-    course.sections.map((section) => ({
-      course,
-      section,
-    })),
-  );
+  const sectionCount = courses.reduce((sum, course) => sum + course.sections.length, 0);
 
   return (
     <section className="rounded-2xl border border-slate-700 bg-slate-900/40 p-6 shadow-lg">
-      <header className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Course List</h2>
-          <p className="text-sm text-slate-300">Review imported sections, exclude any you do not want the solver to use, or clear and re-import.</p>
+          <p className="text-sm text-slate-300">Review imported sections, exclude or remove sections you do not want the solver to use.</p>
         </div>
-        <div className="text-sm text-slate-400">
-          Showing {rows.length} section{rows.length === 1 ? "" : "s"}
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <p className="text-sm text-slate-400">
+            Showing {sectionCount} section{sectionCount === 1 ? "" : "s"}
+          </p>
+          <button
+            type="button"
+            onClick={onRemoveAll}
+            disabled={!sectionCount}
+            className="rounded-md border border-red-500 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-900/30 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Remove all
+          </button>
         </div>
       </header>
       <div className="overflow-x-auto">
         <div className="max-h-[420px] overflow-y-auto rounded-xl border border-slate-800/60">
           <table className="min-w-full divide-y divide-slate-800 text-left text-sm text-slate-200">
-          <thead className="bg-slate-900/60 uppercase text-xs font-semibold tracking-wide text-slate-400">
-            <tr>
-              <th className="px-4 py-3">Subject</th>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Units</th>
-              <th className="px-4 py-3">Section</th>
-              <th className="px-4 py-3">Schedule</th>
-              <th className="px-4 py-3">Room</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {rows.length ? (
-              rows.map(({ course, section }) => {
-                const isExcluded = excluded.has(section.id);
-                const rowClass = isExcluded ? "bg-red-900/30" : "";
-
+            <thead className="bg-slate-900/60 uppercase text-xs font-semibold tracking-wide text-slate-400">
+              <tr>
+                <th className="px-4 py-3">Subject</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Units</th>
+                <th className="px-4 py-3">Section</th>
+                <th className="px-4 py-3">Schedule</th>
+                <th className="px-4 py-3">Room</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+            {sectionCount ? (
+              courses.map((course) => {
+                if (!course.sections.length) {
+                  return null;
+                }
                 return (
-                  <tr key={section.id} className={rowClass}>
-                    <td className="px-4 py-3 font-semibold text-white">{course.code}</td>
-                    <td className="px-4 py-3">{course.name}</td>
-                    <td className="px-4 py-3">{course.units ?? ""}</td>
-                    <td className="px-4 py-3">{section.sectionCode}</td>
-                    <td className="px-4 py-3">
-                      <ul className="space-y-1">
-                        {section.meetings.map((meeting, index) => (
-                          <li key={index} className="font-mono">
-                            {formatDay(meeting.day)} {formatTime(meeting.start)}-{formatTime(meeting.end)} {meeting.kind ?? ""}
-                          </li>
-                        ))}
-                      </ul>
-                    </td>
-                    <td className="px-4 py-3">
-                      {Array.from(new Set(section.meetings.map((meeting) => meeting.room).filter(Boolean))).join(", ")}
-                    </td>
-                    <td className="px-4 py-3 font-semibold">{renderStatus(section)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => onToggleSection(section.id)}
-                        className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
-                          isExcluded
-                            ? "border-red-500 text-red-400 hover:bg-red-900/30"
-                            : "border-emerald-500 text-emerald-400 hover:bg-emerald-900/30"
-                        }`}
-                      >
-                        {isExcluded ? "Excluded" : "Included"}
-                      </button>
-                    </td>
-                  </tr>
+                  <Fragment key={course.code}>
+                    <tr className="text-white">
+                      <td colSpan={8} className="px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-500/40 bg-indigo-900/30 px-4 py-3 shadow-inner">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold uppercase tracking-wide text-slate-200">{course.code}</p>
+                            <p className="text-xs text-slate-300">{course.name}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveSubject(course.code)}
+                            className="rounded-md border border-red-500 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-900/30"
+                          >
+                            Remove subject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {course.sections.map((section) => {
+                      const isExcluded = excluded.has(section.id);
+                      const rowClass = isExcluded ? "bg-red-900/30" : "";
+
+                      return (
+                        <tr key={section.id} className={rowClass}>
+                          <td className="px-4 py-3 font-semibold text-white">{course.code}</td>
+                          <td className="px-4 py-3">{course.name}</td>
+                          <td className="px-4 py-3">{course.units ?? ""}</td>
+                          <td className="px-4 py-3">{section.sectionCode}</td>
+                          <td className="px-4 py-3">
+                            <ul className="space-y-1">
+                              {section.meetings.map((meeting, meetingIndex) => (
+                                <li key={meetingIndex} className="font-mono">
+                                  {formatDay(meeting.day)} {formatTime(meeting.start)}-{formatTime(meeting.end)} {meeting.kind ?? ""}
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                          <td className="px-4 py-3">
+                            {Array.from(new Set(section.meetings.map((meeting) => meeting.room).filter(Boolean))).join(", ")}
+                          </td>
+                          <td className="px-4 py-3 font-semibold">{renderStatus(section)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => onToggleSection(section.id)}
+                                className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
+                                  isExcluded
+                                    ? "border-red-500 text-red-400 hover:bg-red-900/30"
+                                    : "border-emerald-500 text-emerald-400 hover:bg-emerald-900/30"
+                                }`}
+                              >
+                                {isExcluded ? "Excluded" : "Included"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onRemoveSection(section.id)}
+                                className="rounded-md border border-slate-600 px-3 py-1 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800/60"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
                 );
               })
             ) : (
@@ -89,7 +140,7 @@ export function CourseEditor({ courses, excludedSections, onToggleSection }: Cou
                 </td>
               </tr>
             )}
-          </tbody>
+            </tbody>
           </table>
         </div>
       </div>

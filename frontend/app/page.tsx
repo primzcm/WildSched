@@ -224,6 +224,49 @@ export default function HomePage() {
     setNoScheduleHint(null);
   };
 
+
+  const handleRemoveSection = (sectionId: string) => {
+    setCourses((current) =>
+      current
+        .map((course) => ({
+          ...course,
+          sections: course.sections.filter((section) => section.id !== sectionId),
+        }))
+        .filter((course) => course.sections.length > 0),
+    );
+    setExcludedSections((current) => current.filter((id) => id !== sectionId));
+    setResults([]);
+    setSolveError(null);
+    setSolverRationale(undefined);
+    setMissingCourses([]);
+    setNoScheduleHint(null);
+  };
+
+  const handleRemoveSubject = (courseCode: string) => {
+    const target = courses.find((course) => course.code === courseCode);
+    const idsToRemove = new Set((target?.sections ?? []).map((section) => section.id));
+
+    setCourses((current) => current.filter((course) => course.code !== courseCode));
+    if (idsToRemove.size) {
+      setExcludedSections((current) => current.filter((id) => !idsToRemove.has(id)));
+    }
+    setResults([]);
+    setSolveError(null);
+    setSolverRationale(undefined);
+    setMissingCourses([]);
+    setNoScheduleHint(null);
+  };
+
+  const handleRemoveAllSections = () => {
+    setCourses([]);
+    setExcludedSections([]);
+    setResults([]);
+    setSolveError(null);
+    setSolverRationale(undefined);
+    setMissingCourses([]);
+    setNoScheduleHint(null);
+  };
+
   const handleToggleSection = (sectionId: string) => {
     setExcludedSections((current) => {
       const set = new Set(current);
@@ -325,7 +368,14 @@ export default function HomePage() {
           </p>
         </header>
 
-        <CourseEditor courses={courses} excludedSections={excludedSections} onToggleSection={handleToggleSection} />
+        <CourseEditor
+          courses={courses}
+          excludedSections={excludedSections}
+          onToggleSection={handleToggleSection}
+          onRemoveSection={handleRemoveSection}
+          onRemoveSubject={handleRemoveSubject}
+          onRemoveAll={handleRemoveAllSections}
+        />
 
         <section className="rounded-2xl border border-slate-700 bg-slate-900/40 p-6 shadow-lg">
           <FileImport rawInput={rawInput} onRawInputChange={setRawInput} onAddCourses={handleAddCourses} />
