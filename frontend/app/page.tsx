@@ -5,7 +5,6 @@ import { CourseEditor } from "@/components/CourseEditor";
 import { FileImport } from "@/components/FileImport";
 import { PreferencesPanel } from "@/components/PreferencesPanel";
 import { ScheduleCard } from "@/components/ScheduleCard";
-import { generateICS } from "@/lib/ics";
 import type { Course, Preferences, SolveResultItem, SolveResponse, Section } from "@/lib/types";
 
 const STORAGE_KEY = "wildsched:v2";
@@ -26,11 +25,22 @@ function cloneCourse(course: Course): Course {
 }
 
 function isSectionClosed(section: Section): boolean {
+  const capacity = section.capacity;
+  const totalEnrolled =
+    section.enrolled === undefined && section.waitlist === undefined
+      ? undefined
+      : (section.enrolled ?? 0) + (section.waitlist ?? 0);
+
   if (section.open === false) {
     return true;
   }
-  if (section.capacity !== undefined && section.enrolled !== undefined) {
-    return section.enrolled >= section.capacity;
+  if (capacity !== undefined) {
+    if (totalEnrolled !== undefined) {
+      return totalEnrolled >= capacity;
+    }
+    if (section.enrolled !== undefined) {
+      return section.enrolled >= capacity;
+    }
   }
   return false;
 }
@@ -345,19 +355,6 @@ export default function HomePage() {
     }
   };
 
-  const handleExport = (sections: Section[]) => {
-    const ics = generateICS(sections, courses);
-    const blob = new Blob([ics], { type: "text/calendar" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "wildsched.ics";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <main className="min-h-screen bg-slate-950 pb-16 text-slate-100">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10">
@@ -439,7 +436,6 @@ export default function HomePage() {
                   score={result.score}
                   sections={sections}
                   courses={courses}
-                  onExport={() => handleExport(sections)}
                 />
               );
             })}

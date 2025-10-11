@@ -1,6 +1,7 @@
 "use client";
 
 import type { Preferences } from "@/lib/types";
+import { TimePickerField } from "./TimePickerField";
 
 interface PreferencesPanelProps {
   prefs: Preferences;
@@ -23,15 +24,6 @@ export function PreferencesPanel({
   canSolve,
   disabledReason,
 }: PreferencesPanelProps) {
-  const handleTimeChange = (field: "earliestStart" | "latestEnd", value: string) => {
-    if (!value) {
-      onPrefsChange({ ...prefs, [field]: undefined });
-      return;
-    }
-    const minutes = timeToMinutes(value);
-    onPrefsChange({ ...prefs, [field]: minutes });
-  };
-
   const buttonDisabled = solving || !canSolve;
 
   return (
@@ -84,30 +76,18 @@ export function PreferencesPanel({
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-200" htmlFor="earliest-time">
-            Earliest start (optional)
-          </label>
-          <input
-            id="earliest-time"
-            type="time"
-            value={prefs.earliestStart !== undefined ? minutesToTime(prefs.earliestStart) : ""}
-            onChange={(event) => handleTimeChange("earliestStart", event.target.value)}
-            className="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-200" htmlFor="latest-time">
-            Latest end (optional)
-          </label>
-          <input
-            id="latest-time"
-            type="time"
-            value={prefs.latestEnd !== undefined ? minutesToTime(prefs.latestEnd) : ""}
-            onChange={(event) => handleTimeChange("latestEnd", event.target.value)}
-            className="w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <TimePickerField
+          id="earliest-time"
+          label="Earliest start (optional)"
+          value={prefs.earliestStart}
+          onChange={(minutes) => onPrefsChange({ ...prefs, earliestStart: minutes })}
+        />
+        <TimePickerField
+          id="latest-time"
+          label="Latest end (optional)"
+          value={prefs.latestEnd}
+          onChange={(minutes) => onPrefsChange({ ...prefs, latestEnd: minutes })}
+        />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -140,18 +120,4 @@ export function PreferencesPanel({
       </div>
     </section>
   );
-}
-
-function minutesToTime(minutes: number): string {
-  const clamped = Math.max(0, Math.min(23 * 60 + 59, minutes));
-  const hours = Math.floor(clamped / 60);
-  const mins = clamped % 60;
-  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
-}
-
-function timeToMinutes(value: string): number {
-  const [hourStr, minuteStr] = value.split(":");
-  const hours = Number.parseInt(hourStr, 10);
-  const minutes = Number.parseInt(minuteStr, 10);
-  return hours * 60 + minutes;
 }

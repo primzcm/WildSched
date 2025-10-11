@@ -67,15 +67,15 @@ export function CourseEditor({
                   <Fragment key={course.code}>
                     <tr className="text-white">
                       <td colSpan={8} className="px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-500/40 bg-indigo-900/30 px-4 py-3 shadow-inner">
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-300 bg-indigo-100/80 px-4 py-3 shadow-inner transition-colors duration-200 ease-out dark:border-indigo-500/40 dark:bg-indigo-900/30">
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-slate-200">{course.code}</p>
-                            <p className="text-xs text-slate-300">{course.name}</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-900 dark:text-indigo-200">{course.code}</p>
+                            <p className="text-xs text-slate-700 dark:text-slate-300">{course.name}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => onRemoveSubject(course.code)}
-                            className="rounded-md border border-red-500 px-3 py-1 text-xs font-semibold text-red-400 transition-colors hover:bg-red-900/30"
+                            className="rounded-md border border-red-500 px-3 py-1 text-xs font-semibold text-red-500 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-50 dark:text-red-300 dark:hover:bg-red-900/30 dark:focus-visible:ring-offset-slate-900"
                           >
                             Remove subject
                           </button>
@@ -110,10 +110,10 @@ export function CourseEditor({
                               <button
                                 type="button"
                                 onClick={() => onToggleSection(section.id)}
-                                className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
+                                className={`rounded-md border px-3 py-1 text-xs font-semibold transform transition-all duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 dark:focus-visible:ring-offset-slate-900 ${
                                   isExcluded
-                                    ? "border-red-500 text-red-400 hover:bg-red-900/30"
-                                    : "border-emerald-500 text-emerald-400 hover:bg-emerald-900/30"
+                                    ? "border-red-500 text-red-400 hover:bg-red-500/10 focus-visible:ring-red-400"
+                                    : "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 focus-visible:ring-emerald-400"
                                 }`}
                               >
                                 {isExcluded ? "Excluded" : "Included"}
@@ -121,7 +121,7 @@ export function CourseEditor({
                               <button
                                 type="button"
                                 onClick={() => onRemoveSection(section.id)}
-                                className="rounded-md border border-slate-600 px-3 py-1 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800/60"
+                                className="rounded-md border border-slate-500 px-3 py-1 text-xs font-semibold text-slate-700 transform transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-slate-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 dark:text-slate-300 dark:focus-visible:ring-offset-slate-900"
                               >
                                 Remove
                               </button>
@@ -170,29 +170,58 @@ function formatTime(minutes: number): string {
 }
 
 function isSectionClosed(section: Section): boolean {
+  const capacity = section.capacity;
+  const totalEnrolled = getEnrollmentTotal(section);
+
   if (section.open === false) {
     return true;
   }
-  if (section.capacity !== undefined && section.enrolled !== undefined) {
-    return section.enrolled >= section.capacity;
+  if (capacity !== undefined) {
+    if (totalEnrolled !== undefined) {
+      return totalEnrolled >= capacity;
+    }
+    if (section.enrolled !== undefined) {
+      return section.enrolled >= capacity;
+    }
   }
   return false;
 }
 
 function renderStatus(section: Section): string {
+  const capacity = section.capacity;
+  const totalEnrolled = getEnrollmentTotal(section);
+
   if (isSectionClosed(section)) {
-    if (section.capacity !== undefined && section.enrolled !== undefined) {
-      return `Closed (${section.enrolled}/${section.capacity})`;
+    if (capacity !== undefined && totalEnrolled !== undefined) {
+      return `Closed (${totalEnrolled}/${capacity})`;
+    }
+    if (capacity !== undefined && section.enrolled !== undefined) {
+      return `Closed (${section.enrolled}/${capacity})`;
     }
     return "Closed";
   }
-  if (section.capacity !== undefined && section.enrolled !== undefined) {
-    return `${section.enrolled}/${section.capacity}`;
+
+  if (capacity !== undefined && totalEnrolled !== undefined) {
+    return `${totalEnrolled}/${capacity}`;
+  }
+  if (capacity !== undefined && section.enrolled !== undefined) {
+    return `${section.enrolled}/${capacity}`;
   }
   if (section.open === true) {
     return "Open";
   }
+  if (totalEnrolled !== undefined) {
+    return `${totalEnrolled}`;
+  }
   return "Unknown";
+}
+
+function getEnrollmentTotal(section: Section): number | undefined {
+  const hasCounts = section.enrolled !== undefined || section.waitlist !== undefined;
+  if (!hasCounts) {
+    return undefined;
+  }
+  return (section.enrolled ?? 0) + (section.waitlist ?? 0);
 }
 
 
